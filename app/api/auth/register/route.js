@@ -5,7 +5,17 @@ import { connectDB } from "../../../../lib/db";
 import { User, Company } from "../../../../models";
 import { createSession, sessionCookie } from "../../../../lib/auth";
 
-const schema = z.object({ name: z.string().trim().min(2, "Full name must contain at least 2 characters.").max(80), email: z.string().trim().email(), password: z.string().min(8), role: z.enum(["candidate", "recruiter"]).default("candidate"), companyName: z.string().trim().max(100).optional().or(z.literal("")), remember: z.boolean().optional() });
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const schema = z.object({
+  name: z.string().trim().min(2, "Full name must contain at least 2 characters.").max(80),
+  email: z.string().trim().email(),
+  password: z.string().min(8).refine((p) => passwordRegex.test(p), {
+    message: "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.",
+  }),
+  role: z.enum(["candidate", "recruiter"]).default("candidate"),
+  companyName: z.string().trim().max(100).optional().or(z.literal("")),
+  remember: z.boolean().optional(),
+});
 export async function POST(request) {
   try {
     const data = schema.parse(await request.json());

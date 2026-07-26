@@ -1,19 +1,10 @@
-import { jwtVerify } from "jose";
 import { NextResponse } from "next/server";
 import { ROUTE_PERMISSIONS, can, dashboardFor } from "./lib/rbac";
-
-const SESSION_COOKIE = "talentloop_session";
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || "change-this-development-secret-before-production");
+import { SESSION_COOKIE, verifySessionToken } from "./lib/session-token";
 
 async function readSession(request) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, secret);
-    return payload;
-  } catch {
-    return null;
-  }
+  return verifySessionToken(token);
 }
 
 export async function middleware(request) {

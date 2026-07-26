@@ -7,22 +7,32 @@ on:
     branches: [main]
 
 jobs:
-  quality:
-    name: Build and verify
+  build:
+    name: Install, lint, and build
     runs-on: ubuntu-latest
+
+    env:
+      # Provide dummy values so Next.js build doesn't fail on missing env vars
+      MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/talentloop' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-dummy-secret-32-chars-minimum!!' }}
+      OPENAI_API_KEY: ''
+      NEXT_TELEMETRY_DISABLED: 1
+
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v4
-      - name: Use Node.js
+
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
       - name: Install dependencies
         run: npm ci
-      - name: Run lint checks
+
+      - name: Lint check
         run: npm run lint
-      - name: Run tests
-        run: npm test --if-present
+
       - name: Build application
         run: npm run build

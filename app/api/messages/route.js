@@ -11,6 +11,9 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const conversation = searchParams.get("conversation");
   if (!conversation) return NextResponse.json({ error: "conversation param required." }, { status: 400 });
+  if (!conversation.split("_").includes(guard.session.userId)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   await connectDB();
   // Mark messages sent to current user as read
   await Message.updateMany({ conversation, recipient: guard.session.userId, readAt: null }, { $set: { readAt: new Date() } });

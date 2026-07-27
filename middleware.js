@@ -1,28 +1,37 @@
 import { NextResponse } from "next/server";
-import { ROUTE_PERMISSIONS, can, dashboardFor } from "./lib/rbac";
-import { SESSION_COOKIE, verifySessionToken } from "./lib/session-token";
+import { dashboardFor } from "./lib/rbac";
+import { verifySessionToken } from "./lib/session-token";
 
 async function readSession(request) {
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]
+    || request.cookies.get("token")?.value;
   return verifySessionToken(token);
 }
 
-export async function middleware(request) {
-  const matchedRoute = ROUTE_PERMISSIONS.find((route) => request.nextUrl.pathname.startsWith(route.path));
-  if (!matchedRoute) return NextResponse.next();
+const AUTH_ROUTES = ["/login", "/register"];
+const PROTECTED_ROUTES = ["/dashboard", "/recruiter", "/admin", "/apply", "/profile"];
 
-  const session = await readSession(request);
-  if (!session) {
-    const response = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.set({ name: SESSION_COOKIE, value: "", httpOnly: true, path: "/", maxAge: 0 });
-    return response;
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
+
+  // Redirect logged-in users away from auth pages
+  if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+    const session = await readSession(request);
+    if (session) return NextResponse.redirect(new URL(dashboardFor(session.role), request.url));
+    return NextResponse.next();
   }
 
-  if (!can(session.role, matchedRoute.permission)) {
-    return NextResponse.redirect(new URL(dashboardFor(session.role), request.url));
+  // Redirect unauthenticated users away from protected pages
+  if (PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
+    const session = await readSession(request);
+    if (!session) return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(pathname)}`, request.url));
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/dashboard/:path*", "/recruiter/:path*", "/admin/:path*", "/dashboard/candidate/:path*", "/dashboard/recruiter/:path*", "/dashboard/admin/:path*"] };
+export const config = {
+  matcher: ["/login", "/register", "/dashboard", "/dashboard/:path*", "/recruiter", "/recruiter/:path*", "/admin", "/admin/:path*", "/apply", "/apply/:path*", "/profile", "/profile/:path*"],
+};

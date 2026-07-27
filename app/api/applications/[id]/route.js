@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB } from "../../../../lib/db";
-import { Application, Notification } from "../../../../models";
+import { Application, Company, Notification } from "../../../../models";
 import { requirePermission } from "../../../../lib/guard";
 import { PERMISSIONS } from "../../../../lib/rbac";
 
@@ -15,6 +15,15 @@ export async function GET(_, { params }) {
     .populate("candidate", "name email avatar skills resumeUrl portfolio experience education certifications languages about")
     .lean();
   if (!application) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (guard.session.role === "candidate" && application.candidate?._id?.toString() !== guard.session.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (guard.session.role === "recruiter") {
+    const company = await Company.findOne({ owner: guard.session.userId }).select("_id").lean();
+    if (!company || application.job?.company?._id?.toString() !== company._id.toString()) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
   return NextResponse.json({ application });
 }
 
@@ -29,6 +38,11 @@ export async function PATCH(request, { params }) {
     const { status } = statusSchema.parse(await request.json());
     await connectDB();
     const { id } = await params;
+    const existing = await Application.findById(id).populate({ path: "job", select: "title company", populate: { path: "company", select: "owner" } });
+    if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (guard.session.role !== "admin" && existing.job?.company?.owner?.toString() !== guard.session.userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const application = await Application.findByIdAndUpdate(id, { $set: { status } }, { new: true }).populate("job", "title");
     if (!application) return NextResponse.json({ error: "Not found." }, { status: 404 });
     await Notification.create({

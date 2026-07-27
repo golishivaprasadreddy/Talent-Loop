@@ -8,7 +8,7 @@ const FAQS = [
   ["Is TalentLoop free for candidates?", "Yes. Candidates can build a profile, discover roles, save opportunities, track applications, and use their dashboard at no cost."],
   ["How does AI matching work?", "TalentLoop compares the skills in a profile with role requirements and highlights transparent matches and gaps. Candidates remain in control."],
   ["Can companies manage the entire hiring flow?", "Yes. Recruiters can publish jobs, screen applicants, shortlist talent, track interviews, and understand their hiring funnel."],
-  ["How is my information protected?", "The platform uses hashed passwords, secure httpOnly sessions, role-protected routes, input validation, and environment-managed secrets."],
+  ["How is my information protected?", "The platform uses hashed passwords, JWT bearer authentication, role-protected APIs, input validation, and environment-managed secrets."],
 ];
 
 function Toast({ toasts, remove }) {

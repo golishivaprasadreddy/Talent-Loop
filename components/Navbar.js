@@ -1,14 +1,41 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { clearAuthToken, getAuthToken, TOKEN_STORAGE_KEY } from "../lib/client-auth";
+
+function subscribeToAuth(cb) {
+  window.addEventListener("talentloop-auth", cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    window.removeEventListener("talentloop-auth", cb);
+    window.removeEventListener("storage", cb);
+  };
+}
 
 export default function Navbar() {
+  const hasToken = useSyncExternalStore(
+    subscribeToAuth,
+    () => !!window.localStorage.getItem(TOKEN_STORAGE_KEY),
+    () => false
+  );
   const [user, setUser] = useState(undefined);
   const [open, setOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const ref = useRef();
 
   useEffect(() => {
-    fetch("/api/profile").then(r => r.ok ? r.json() : null).then(d => setUser(d?.user || null));
+    function syncUser() {
+      const token = getAuthToken();
+      fetch("/api/profile", token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => setUser(d?.user || null));
+    }
+    syncUser();
+    window.addEventListener("talentloop-auth", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("talentloop-auth", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, []);
 
   useEffect(() => {
@@ -19,6 +46,7 @@ export default function Navbar() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    clearAuthToken();
     window.location.href = "/";
   }
 
@@ -47,7 +75,7 @@ export default function Navbar() {
           )}
 
           {/* logged out */}
-          {user === null && (
+          {user === null && !hasToken && (
             <>
               <a href="/login" className="nav-login-btn">Login</a>
               <a href="/register" className="nav-button">Get started</a>
@@ -97,7 +125,7 @@ export default function Navbar() {
         {user === null && <a href="/login" onClick={() => setMobileMenu(false)}>Login</a>}
         {user === null && <a href="/register" onClick={() => setMobileMenu(false)}>Get started</a>}
         {user && <a href={dashPath} onClick={() => setMobileMenu(false)}>Dashboard</a>}
-        {user && <button className="mobile-link" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/"; }}>Log out</button>}
+        {user && <button className="mobile-link" onClick={logout}>Log out</button>}
       </div>
     </>
   );

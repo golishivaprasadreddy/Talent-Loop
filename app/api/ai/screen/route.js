@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "../../../../lib/db";
-import { Application, Job } from "../../../../models";
+import { Application } from "../../../../models";
 import { requirePermission } from "../../../../lib/guard";
 import { PERMISSIONS } from "../../../../lib/rbac";
 import { screenApplicant } from "../../../../lib/ai";
@@ -19,8 +19,13 @@ export async function POST(request) {
 
   const applications = await Application.find({ _id: { $in: applicationIds } })
     .populate("candidate", "skills experience")
-    .populate("job", "title skills requirements")
+    .populate({ path: "job", select: "title skills requirements company", populate: { path: "company", select: "owner" } })
     .lean();
+
+  if (guard.session.role !== "admin") {
+    const forbidden = applications.some((app) => app.job?.company?.owner?.toString() !== guard.session.userId);
+    if (forbidden) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const results = await Promise.all(
     applications.map(async (app) => {

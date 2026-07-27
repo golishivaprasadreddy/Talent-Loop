@@ -23,7 +23,7 @@ export async function GET() {
   const guard = await requirePermission(PERMISSIONS.manageOwnProfile);
   if (guard.error) return guard.error;
   await connectDB();
-  const user = await User.findById(guard.session.userId).select("-passwordHash -avatar").lean();
+  const user = await User.findById(guard.session.userId).select("-passwordHash").lean();
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
   return NextResponse.json({ user });
 }
@@ -34,7 +34,7 @@ export async function PATCH(request) {
   try {
     const data = profileSchema.parse(await request.json());
     await connectDB();
-    const user = await User.findByIdAndUpdate(guard.session.userId, { $set: data }, { new: true }).select("-passwordHash");
+    const user = await User.findByIdAndUpdate(guard.session.userId, { $set: data }, { new: true }).select("-passwordHash").lean();
     return NextResponse.json({ user });
   } catch (error) {
     return NextResponse.json({ error: error.issues?.[0]?.message || "Unable to update profile." }, { status: 400 });

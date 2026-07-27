@@ -1,128 +1,127 @@
-# TalentLoop — Full-Stack Hiring Platform
+# TalentLoop
 
-TalentLoop is a full-stack hiring platform connecting companies with talented professionals. Candidates can discover and apply for roles while recruiters manage jobs and applicants; administrators have marketplace oversight. The project is written in JavaScript only.
+TalentLoop is a full-stack hiring platform built with Next.js App Router, React, MongoDB, and JWT bearer authentication. It supports candidates, recruiters, and admins with role-aware dashboards, job discovery, applications, saved jobs, company profiles, notifications, messaging, reviews, and optional AI-assisted hiring workflows.
 
-![Next.js](https://img.shields.io/badge/Next.js-15-111827?logo=next.js) ![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-f7df1e?logo=javascript&logoColor=111827) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-111827?logo=vercel)
+## Highlights
 
-## Business value
+- Candidate job search with filters, saved jobs, applications, recommendations, and profile management
+- Recruiter company profile management, job CRUD, applicant review, and job-description generation
+- Admin user, company, job, statistics, logs, and moderation APIs
+- Secure authentication with hashed passwords, JWT sessions, route middleware, and RBAC permissions
+- MongoDB/Mongoose models for users, companies, jobs, applications, saved jobs, notifications, reviews, messages, and admin logs
+- Optional OpenAI Responses API integration for resume analysis, applicant screening, cover letters, recommendations, and job descriptions
+- GitHub Actions workflows for lint/build CI and Vercel production deployment
 
-For candidates, TalentLoop reduces the friction between discovering a suitable opportunity and applying. For employers, it presents roles in a consistent format and provides a clean application API that can be connected to an ATS or database.
+## Tech Stack
 
-## Platform features
-
-- Search roles by title, company, skill, and location
-- Filter vacancies by discipline
-- Save jobs in the browser with `localStorage`
-- Responsive design for desktop and mobile
-- Application modal with input validation
-- Server-side jobs and applications API routes
-- Candidate and recruiter registration, login, secure JWT session cookie, logout, and account recovery UI
-- Role-aware candidate, recruiter, and admin dashboards
-- MongoDB models for users, companies, jobs, applications, saved jobs, notifications, reviews, and messages
-- Recruiter job creation/update/deletion API with ownership validation
-- Candidate application tracking and recruiter notification creation
-- AI resume analysis, cover-letter generation, and job-description generation endpoints
-- Protected dashboard routes, password hashing, Zod input validation, and secure environment variables
-
-## Architecture
-
-```text
-Next.js App Router
-  ├── React UI: landing, authentication, candidate/recruiter/admin portals
-  ├── Route handlers: auth, jobs, applications, AI
-  ├── JWT httpOnly cookie + middleware route protection
-  ├── Mongoose data layer → MongoDB Atlas
-  └── Optional OpenAI Responses API → AI assistance
-```
-
-The landing page uses polished sample roles until `MONGODB_URI` is configured. Once connected, published roles and authenticated applications are persisted in MongoDB.
-
-## Database collections
-
-| Collection | Purpose |
+| Layer | Technology |
 | --- | --- |
-| `users` | Candidate, recruiter, and administrator identities and candidate profiles |
-| `companies` | Recruiter-owned company information and approval state |
-| `jobs` | Job listings, requirements, work mode, salary, visibility, and views |
-| `applications` | Candidate submissions and lifecycle status |
-| `savedjobs` | Candidate bookmarks |
-| `notifications` | Product notifications for candidates and recruiters |
-| `reviews` | Candidate company ratings, pros, and cons |
-| `messages` | Recruiter-candidate chat messages and read state |
+| Framework | Next.js 15 App Router |
+| UI | React 19, CSS modules/global CSS |
+| Runtime | Node.js 20+ |
+| Database | MongoDB with Mongoose |
+| Auth | bcryptjs, jose, JWT sessions |
+| Validation | Zod |
+| AI | OpenAI Responses API through `fetch` |
+| Deployment | Vercel |
 
-## Local development
-
-Prerequisites: Node.js 20 or newer, npm, and MongoDB Atlas (or a local MongoDB instance).
+## Quick Start
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` and supply at least:
+Open `http://localhost:3000`.
 
-```bash
-MONGODB_URI=your-mongodb-connection-string
-JWT_SECRET=a-long-random-production-secret
-OPENAI_API_KEY=optional
-npm run dev
+At minimum, configure `MONGODB_URI` and `JWT_SECRET` in `.env.local`. Without MongoDB, the public jobs API falls back to demo jobs, but authenticated and dashboard features require a database connection.
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local Next.js development server |
+| `npm run build` | Create a production build |
+| `npm start` | Start the production server after building |
+| `npm run lint` | Syntax-check all JavaScript files |
+| `npm test` | Run the same JavaScript syntax check |
+| `npm run db:init` | Create MongoDB collections/indexes and seed an admin user |
+
+## Environment Variables
+
+See `.env.example` for a complete template.
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Long random secret for session JWT signing |
+| `NEXT_PUBLIC_BASE_URL` | Recommended | Base URL used for password reset links |
+| `OPENAI_API_KEY` | Optional | Enables AI-backed responses |
+| `OPENAI_MODEL` | Optional | OpenAI model name; defaults to `gpt-4.1-mini` |
+| `ADMIN_EMAIL` | Optional | Admin email seeded by `npm run db:init` |
+| `ADMIN_PASSWORD` | Optional | Admin password seeded by `npm run db:init` |
+| `ADMIN_NAME` | Optional | Admin display name seeded by `npm run db:init` |
+
+## Documentation
+
+- `docs/ARCHITECTURE.md` explains the application structure and request flow.
+- `docs/API.md` lists API routes, permissions, query parameters, and payloads.
+- `docs/DATABASE.md` documents MongoDB collections, schemas, and indexes.
+- `docs/AUTHORIZATION.md` covers roles, permissions, protected routes, and sessions.
+- `docs/DEPLOYMENT.md` covers Vercel and GitHub Actions deployment.
+- `docs/DEVELOPMENT.md` covers local workflows, project conventions, and troubleshooting.
+
+## Project Structure
+
+```text
+app/                 Next.js pages, route handlers, global styles
+components/          Shared React UI components
+lib/                 Database, auth, RBAC, guards, and AI helpers
+models/              Mongoose schemas and model exports
+scripts/             Database initialization and JavaScript syntax check
+.github/workflows/   CI and Vercel deployment workflows
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Main Routes
 
-To create a production build:
+| Route | Purpose |
+| --- | --- |
+| `/` | Landing page |
+| `/jobs` and `/jobs/:id` | Job listings and details |
+| `/apply/:id` | Candidate application flow |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Authentication and recovery |
+| `/dashboard` | Candidate dashboard |
+| `/recruiter` | Recruiter dashboard |
+| `/admin` | Admin dashboard |
+| `/profile/setup` | Profile setup |
+| `/company/:id` | Company profile |
+
+## Database Setup
+
+After configuring `MONGODB_URI`, initialize collections and indexes:
 
 ```bash
+npm run db:init
+```
+
+The script also creates an admin account if one does not exist. Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` before running it if you do not want the defaults.
+
+## Validation
+
+```bash
+npm run lint
 npm run build
-npm start
 ```
 
-## API
+`npm run lint` uses `node --check` across `.js` and `.mjs` files. It is a syntax check, not an ESLint rule set.
 
-### `GET /api/jobs`
+## Deployment
 
-Returns the list of available roles.
+The repository includes:
 
-### `POST /api/applications`
+- `.github/workflows/ci.yml` for pull request and `main` branch build validation
+- `.github/workflows/deploy.yml` for production Vercel deployment on `main`
+- `vercel.json` with the Next.js framework/build configuration
 
-Accepts JSON with `name`, `email`, `note`, and `jobId`. `name`, `email`, and `jobId` are required. A successful request returns an application reference ID.
-
-### Authentication
-
-- `POST /api/auth/register` — creates candidate or recruiter/company account
-- `POST /api/auth/login` — validates credentials and sets an httpOnly session cookie
-- `POST /api/auth/logout` — clears the session cookie
-
-### Platform APIs
-
-- `GET` / `POST /api/jobs` — discover published jobs / create recruiter jobs
-- `GET` / `PATCH` / `DELETE /api/jobs/:id` — view, manage, or remove a job
-- `POST /api/ai/resume-analysis` — skills match score and resume feedback
-- `POST /api/ai/cover-letter` — tailored cover letter
-- `POST /api/ai/job-description` — recruiter job description draft
-
-## CI/CD and Vercel deployment
-
-The GitHub Actions workflow at `.github/workflows/ci.yml` runs on pull requests and pushes to `main`. It installs locked dependencies and creates a production build. The deployment workflow at `.github/workflows/deploy.yml` deploys every successful push to `main` to Vercel.
-
-To configure continuous deployment:
-
-1. Push this project to a GitHub repository.
-2. In Vercel, click **Add New → Project**, then import that repository.
-3. Vercel detects Next.js automatically. Keep the defaults and deploy once.
-4. In the GitHub repository, add the following **Actions secrets** (available in Vercel Project Settings → General): `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`.
-5. Push to `main`. GitHub Actions validates the app, builds the Vercel output, and deploys it to production.
-
-`vercel.json` captures the framework and build command for a repeatable deployment configuration.
-
-## Suggested next steps
-
-- Add Vercel Blob for PDF resume/file uploads and validate MIME type plus size server-side
-- Add a transactional email provider for verification and password-reset delivery
-- Add Redis rate limiting to public authentication and search endpoints
-- Add automated unit/integration tests and visual regression tests
-- Build the remaining messaging, review, and analytics screens against the included MongoDB schemas
-
-## Assessment notes
-
-The project uses JavaScript only—there are no TypeScript source files. It uses Next.js App Router and built-in route handlers for its full-stack API layer.
+See `docs/DEPLOYMENT.md` for required Vercel and GitHub secrets.

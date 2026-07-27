@@ -2,6 +2,7 @@ import "./globals.css";
 import "./platform.css";
 import "./home.css";
 import Navbar from "../components/Navbar";
+import AuthBridge from "../components/AuthBridge";
 
 export const metadata = {
   title: "TalentLoop | Find work worth doing",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <AuthBridge />
         <Navbar />
         {children}
       

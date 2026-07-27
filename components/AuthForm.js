@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { setAuthToken } from "../lib/client-auth";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -57,14 +58,23 @@ export default function AuthForm({ mode }) {
         companyHeadquarters: form.companyHeadquarters || undefined,
       }),
     };
-    const res = await fetch(`/api/auth/${register ? "register" : "login"}`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload), credentials: "same-origin",
-    });
-    const data = await res.json();
+    let res;
+    let data;
+    try {
+      res = await fetch(`/api/auth/${register ? "register" : "login"}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      data = await res.json();
+    } catch {
+      setLoading(false);
+      return setError("Unable to reach the authentication server.");
+    }
     setLoading(false);
-    if (!res.ok) return setError(data.error);
-    router.push(data.user.role === "recruiter" ? "/recruiter" : data.user.role === "admin" ? "/admin" : register ? "/profile/setup" : "/dashboard/candidate");
+    if (!res.ok) return setError(data.error || "Authentication failed.");
+    setAuthToken(data.token);
+    window.dispatchEvent(new Event("talentloop-auth"));
+    router.push(data.user.role === "recruiter" ? "/dashboard/recruiter" : data.user.role === "admin" ? "/dashboard/admin" : register ? "/profile/setup" : "/dashboard/candidate");
     router.refresh();
   }
 

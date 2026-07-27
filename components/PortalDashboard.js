@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { clearAuthToken, getAuthToken } from "../lib/client-auth";
 
 const STATUS_LABELS = {
   applied: "Applied",
@@ -585,7 +586,7 @@ function ProfileEditor({ profile, onSave }) {
     const res = await fetch("/api/profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     setSaving(false);
-    if (res.ok) { onSave(data.user); setMessage("Profile saved ✓"); } else setMessage(data.error || "Unable to save.");
+    if (res.ok) { onSave(data.user); setMessage("Profile saved ✓"); window.dispatchEvent(new Event("talentloop-auth")); } else setMessage(data.error || "Unable to save.");
   }
 
   return (
@@ -1513,7 +1514,7 @@ function PortalShell({ role, tabs, tab, setTab, user: userProp, children }) {
               <div className="account-menu">
                 <UserCard user={user} role={role} />
                 <div className="account-menu-links">
-                  <a href="/api/auth/logout">Logout</a>
+                  <button type="button" onClick={() => { clearAuthToken(); window.location.href = "/"; }}>Logout</button>
                   <a href="/">Back to site</a>
                 </div>
               </div>
@@ -1554,6 +1555,10 @@ function PortalShell({ role, tabs, tab, setTab, user: userProp, children }) {
 }
 
 export default function PortalDashboard({ role }) {
+  useEffect(() => {
+    if (!getAuthToken()) window.location.href = "/login";
+  }, []);
+
   if (role === "candidate") return <CandidateDashboard />;
   if (role === "recruiter") return <RecruiterDashboard />;
   return <AdminDashboard />;

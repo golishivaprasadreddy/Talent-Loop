@@ -10,7 +10,10 @@ export async function GET(_, { params }) {
   if (guard.error) return guard.error;
   await connectDB();
   const { id } = await params;
-  const application = await Application.findById(id).populate("job", "title location company").populate("candidate", "name email avatar skills").lean();
+  const application = await Application.findById(id)
+    .populate({ path: "job", select: "title location company customQuestions", populate: { path: "company", select: "name logo" } })
+    .populate("candidate", "name email avatar skills resumeUrl portfolio experience education certifications languages about")
+    .lean();
   if (!application) return NextResponse.json({ error: "Not found." }, { status: 404 });
   return NextResponse.json({ application });
 }

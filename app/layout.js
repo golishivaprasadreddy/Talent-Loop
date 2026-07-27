@@ -1,6 +1,7 @@
 import "./globals.css";
 import "./platform.css";
 import "./home.css";
+import Navbar from "../components/Navbar";
 
 export const metadata = {
   title: "TalentLoop | Find work worth doing",
@@ -15,7 +16,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Navbar />
+        {children}
+      </body>
     </html>
   );
 }

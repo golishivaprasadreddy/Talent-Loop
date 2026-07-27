@@ -92,15 +92,6 @@ function JobsPageInner() {
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--cream)" }}>
-      <nav className="nav shell">
-        <a className="brand" href="/"><span>✦</span> TalentLoop</a>
-        <div className="navlinks">
-          <a href="/" style={{ fontSize: 14, color: "var(--muted)", textDecoration: "none" }}>← Home</a>
-          <a href="/login">Sign in</a>
-          <a className="nav-button" href="/register">Get started</a>
-        </div>
-      </nav>
-
       {/* Page header */}
       <div className="shell" style={{ padding: "40px 0 0" }}>
         <p className="eyebrow">ALL OPPORTUNITIES</p>
@@ -114,7 +105,7 @@ function JobsPageInner() {
         {/* Search bar */}
         <form onSubmit={handleSearch} className="jobs-search-bar">
           <div className="jobs-search-input" style={{ position: "relative" }}>
-            <span style={{ fontSize: 18, color: "var(--muted)", flexShrink: 0 }}>🔍</span>
+            <span className="jobs-search-icon">🔍</span>
             <input
               ref={inputRef}
               value={query}
@@ -133,10 +124,10 @@ function JobsPageInner() {
             )}
           </div>
           <div className="jobs-search-input jobs-search-location">
-            <span style={{ fontSize: 18, color: "var(--muted)", flexShrink: 0 }}>📍</span>
+            <span className="jobs-search-icon">📍</span>
             <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City or remote" />
           </div>
-          <button type="submit" className="submit" style={{ whiteSpace: "nowrap", padding: "14px 24px" }}>Search →</button>
+          <button type="submit" className="jobs-search-btn">Search →</button>
         </form>
       </div>
 

@@ -1,63 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function NavUser() {
-  const [user, setUser] = useState(undefined); // undefined = loading
-  const [open, setOpen] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    fetch("/api/profile").then(r => r.ok ? r.json() : null).then(d => setUser(d?.user || null));
-  }, []);
-
-  useEffect(() => {
-    function close(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/";
-  }
-
-  if (user === undefined) return <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--line)" }} />;
-
-  if (!user) return (
-    <>
-      <a href="/login">Sign in</a>
-      <a className="nav-button" href="/register">Get started</a>
-    </>
-  );
-
-  const initials = user.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : user.email[0].toUpperCase();
-  const dashPath = user.role === "recruiter" ? "/dashboard/recruiter" : user.role === "admin" ? "/dashboard/admin" : "/dashboard/candidate";
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: 38, height: 38, borderRadius: "50%", border: "2px solid var(--line)", background: user.avatar ? "transparent" : "var(--ink)", color: "white", font: "700 13px DM Sans", cursor: "pointer", padding: 0, overflow: "hidden", display: "grid", placeItems: "center" }}
-        aria-label="Account menu"
-      >
-        {user.avatar ? <img src={user.avatar} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
-      </button>
-      {open && (
-        <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, boxShadow: "0 8px 28px #0003", minWidth: 200, zIndex: 50, overflow: "hidden" }}>
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{user.name || "Account"}</p>
-            <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--muted)" }}>{user.email}</p>
-            <span style={{ display: "inline-block", marginTop: 6, background: "#eef0ea", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, color: "#5b6660", textTransform: "uppercase", letterSpacing: "0.5px" }}>{user.role}</span>
-          </div>
-          <a href={dashPath} onClick={() => setOpen(false)} style={{ display: "block", padding: "11px 16px", fontSize: 13, fontWeight: 600, color: "var(--ink)", textDecoration: "none" }}>Dashboard</a>
-          <a href={dashPath + "?tab=Profile"} onClick={() => setOpen(false)} style={{ display: "block", padding: "11px 16px", fontSize: 13, color: "var(--ink)", textDecoration: "none", borderTop: "1px solid var(--line)" }}>Edit profile</a>
-          <button onClick={logout} style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 16px", fontSize: 13, fontWeight: 600, color: "#9b2c2c", background: "none", border: 0, borderTop: "1px solid var(--line)", cursor: "pointer" }}>Log out</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 const CATEGORIES = ["All roles", "Engineering", "Design", "Product", "Data", "Marketing", "Sales", "Operations"];
 const WORK_MODES = ["Any mode", "Remote", "Hybrid", "Onsite"];
 const SORT_OPTIONS = ["Latest", "Salary", "Relevance", "Popularity"];
@@ -101,21 +44,27 @@ export default function JobsBoard() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [toasts, setToasts] = useState([]);
-  const [dark, setDark] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const [user, setUser] = useState(undefined); // undefined = loading, null = guest
+  const [loginPrompt, setLoginPrompt] = useState(false);
   const suggestRef = useRef(null);
 
   useEffect(() => {
-    const saved_dark = localStorage.getItem("tl-dark") === "1";
-    setDark(saved_dark);
     fetch("/api/jobs").then(r => r.json()).then(d => { setJobs(d.jobs || []); setLoading(false); });
-    setSaved(JSON.parse(localStorage.getItem("talentloop-saved") || "[]"));
+    fetch("/api/profile").then(r => r.ok ? r.json() : null).then(d => {
+      const u = d?.user || null;
+      setUser(u);
+      if (u) {
+        // Signed in — load saved jobs from DB
+        fetch("/api/saved-jobs").then(r => r.json()).then(d => {
+          const ids = (d.saved || []).map(s => String(s.job?._id || s.job));
+          setSaved(ids);
+          localStorage.setItem("talentloop-saved", JSON.stringify(ids));
+        });
+      } else {
+        setSaved(JSON.parse(localStorage.getItem("talentloop-saved") || "[]"));
+      }
+    });
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-    localStorage.setItem("tl-dark", dark ? "1" : "0");
-  }, [dark]);
 
   function toast(msg, type = "success") {
     const id = Date.now();
@@ -150,11 +99,26 @@ export default function JobsBoard() {
     return list;
   }, [jobs, query, location, category, workMode, salaryMin, sortBy]);
 
-  function toggleSaved(id) {
-    const next = saved.includes(id) ? saved.filter(x => x !== id) : [...saved, id];
-    setSaved(next);
-    localStorage.setItem("talentloop-saved", JSON.stringify(next));
-    toast(saved.includes(id) ? "Removed from saved jobs" : "Job saved!");
+  async function toggleSaved(id) {
+    if (!user) { setLoginPrompt(true); return; }
+    const isSaved = saved.includes(String(id));
+    if (isSaved) {
+      // Unsave — no DELETE endpoint yet, just remove from local state
+      const next = saved.filter(x => x !== String(id));
+      setSaved(next);
+      localStorage.setItem("talentloop-saved", JSON.stringify(next));
+      toast("Removed from saved jobs");
+    } else {
+      const res = await fetch("/api/saved-jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId: id }) });
+      if (res.ok || res.status === 409) {
+        const next = [...saved, String(id)];
+        setSaved(next);
+        localStorage.setItem("talentloop-saved", JSON.stringify(next));
+        toast("Job saved!");
+      } else {
+        toast("Could not save job.", "error");
+      }
+    }
   }
 
 const colorMap = { Engineering: "blue", Design: "purple", Product: "green", Data: "orange", Marketing: "yellow", Sales: "pink", Operations: "green" };
@@ -164,60 +128,27 @@ const colorMap = { Engineering: "blue", Design: "purple", Product: "green", Data
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
-        [data-theme="dark"]{--ink:#edf2ee;--cream:#0f1a12;--card:#182318;--line:#263d2a;--muted:#7a9880;--lime:#c5e85a}
-        [data-theme="dark"] body{background:var(--cream)}
-        [data-theme="dark"] .nav{background:var(--cream);border-bottom:1px solid var(--line)}
-        [data-theme="dark"] .trusted{background:#111a13;border-color:var(--line)}
-        [data-theme="dark"] .trusted-inner{color:#5a7a60}
-        [data-theme="dark"] .job-card{background:var(--card);border-color:var(--line)}
-        [data-theme="dark"] .job-card h3{color:var(--ink)}
-        [data-theme="dark"] .tags span{background:#1e3022;color:#7aaa80}
-        [data-theme="dark"] .job-footer{border-color:var(--line)}
-        [data-theme="dark"] .chips button{border-color:var(--line);color:var(--muted)}
-        [data-theme="dark"] .chips .active{background:#c5e85a;color:#0f1a12;border-color:#c5e85a}
-        [data-theme="dark"] .search-panel{background:#182318;border-color:var(--line);box-shadow:none}
-        [data-theme="dark"] .search-panel input{color:var(--ink)}
-        [data-theme="dark"] .search-panel label{color:#5a7a60}
-        [data-theme="dark"] .search-panel .location{border-color:var(--line)}
-        [data-theme="dark"] .nav-button{background:#c5e85a;border-color:#c5e85a;color:#0f1a12}
-        [data-theme="dark"] .modal{background:#182318}
-        [data-theme="dark"] .modal input,[data-theme="dark"] .modal textarea{background:#1e3022;border-color:var(--line);color:var(--ink)}
-        [data-theme="dark"] .auth-card{background:#182318;border-color:var(--line)}
-        [data-theme="dark"] .auth-card input,[data-theme="dark"] .auth-card select{background:#1e3022;border-color:var(--line);color:var(--ink)}
-        [data-theme="dark"] .how,[data-theme="dark"] .steps p{border-color:var(--line)}
-        [data-theme="dark"] .faq-item{border-color:var(--line);color:var(--ink)}
-        [data-theme="dark"] .results-row{border-color:var(--line)}
-        [data-theme="dark"] .section-heading h2,[data-theme="dark"] h1,[data-theme="dark"] h2,[data-theme="dark"] h3{color:var(--ink)}
-        [data-theme="dark"] .eyebrow{color:#5a7a60}
       `}</style>
 
       <Toast toasts={toasts} remove={removeToast} />
 
-      <main>
-        {/* Nav */}
-        <nav className="nav shell">
-          <a className="brand" href="#top"><span>✦</span> TalentLoop</a>
-          <div className="navlinks">
-            <a href="#jobs">Find jobs</a>
-            <a href="#features">Platform</a>
-            <a href="#how">How it works</a>
-            <button className="dark-toggle" onClick={() => setDark(d => !d)} style={{ border: "1px solid var(--line)", background: "transparent", borderRadius: 7, padding: "8px 12px", cursor: "pointer", fontSize: 16 }}>{dark ? "☀️" : "🌙"}</button>
-            <NavUser />
-            <button className="nav-hamburger" onClick={() => setMobileMenu(true)} aria-label="Open menu">☰</button>
+      {/* Login prompt modal */}
+      {loginPrompt && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={() => setLoginPrompt(false)}>
+          <div style={{ background: "#fffefa", border: "1px solid #d9ddd5", borderRadius: 14, padding: "36px 32px", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 24px 60px #0003" }} onClick={e => e.stopPropagation()}>
+            <p style={{ fontSize: 28, margin: "0 0 8px" }}>♡</p>
+            <h2 style={{ font: "600 22px/1.1 'Fraunces'", letterSpacing: "-.5px", margin: "0 0 10px" }}>Save this job</h2>
+            <p style={{ fontSize: 14, color: "#66716b", margin: "0 0 24px", lineHeight: 1.6 }}>Sign in to save jobs and track them from your dashboard.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <a href="/login" style={{ flex: 1, padding: "12px", background: "#18251f", color: "#fff", borderRadius: 7, font: "600 14px 'DM Sans'", textDecoration: "none", textAlign: "center" }}>Sign in</a>
+              <a href="/register" style={{ flex: 1, padding: "12px", border: "1px solid #d9ddd5", borderRadius: 7, font: "600 14px 'DM Sans'", color: "#18251f", textDecoration: "none", textAlign: "center" }}>Create account</a>
+            </div>
+            <button onClick={() => setLoginPrompt(false)} style={{ marginTop: 14, background: "none", border: "none", font: "13px 'DM Sans'", color: "#66716b", cursor: "pointer" }}>Maybe later</button>
           </div>
-        </nav>
-
-        {/* Mobile menu */}
-        <div className={`mobile-menu ${mobileMenu ? "open" : ""}`}>
-          <button className="mobile-menu-close" onClick={() => setMobileMenu(false)}>×</button>
-          <a href="#jobs" onClick={() => setMobileMenu(false)}>Find jobs</a>
-          <a href="#features" onClick={() => setMobileMenu(false)}>Platform</a>
-          <a href="#how" onClick={() => setMobileMenu(false)}>How it works</a>
-          <a href="/login" onClick={() => setMobileMenu(false)}>Sign in</a>
-          <a href="/register" onClick={() => setMobileMenu(false)}>Get started</a>
-          <button className="mobile-link" onClick={() => { setDark(d => !d); setMobileMenu(false); }}>{dark ? "☀️ Light mode" : "🌙 Dark mode"}</button>
         </div>
+      )}
 
+      <main>
         {/* Hero */}
         <section className="hero shell" id="top">
           <p className="eyebrow">THE COMPLETE HIRING PLATFORM</p>
@@ -307,7 +238,7 @@ const colorMap = { Engineering: "blue", Design: "purple", Product: "green", Data
                 <article className="job-card" key={id}>
                   <div className="job-top">
                     <div className={`avatar ${job.color || color}`}>{job.initials || initials}</div>
-                    <button className={saved.includes(id) ? "save saved" : "save"} onClick={() => toggleSaved(id)} aria-label="Save job">♥</button>
+                    <button className={saved.includes(String(id)) ? "save saved" : "save"} onClick={() => toggleSaved(id)} aria-label="Save job">♥</button>
                   </div>
                   <p className="company">{companyName} <span>· {job.posted || "New"}</span></p>
                   <h3>{job.title}</h3>

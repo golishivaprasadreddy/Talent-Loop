@@ -8,15 +8,31 @@ const answerSchema = z.object({ questionId: z.string(), question: z.string(), an
 
 const schema = z.object({
   jobId: z.string(),
+  name: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  govtId: z.any().optional(),
   resumeUrl: z.string().optional(),
   resumeFileName: z.string().optional(),
   coverLetter: z.string().max(5000).optional(),
   portfolioLink: z.string().optional(),
   linkedinUrl: z.string().optional(),
-  phone: z.string().optional(),
+  experience: z.any().optional(),
+  education: z.any().optional(),
+  certifications: z.array(z.string()).optional(),
   notes: z.string().max(2000).optional(),
   answers: z.array(answerSchema).optional(),
 });
+
+export async function GET(request) {
+  const session = await getSession();
+  if (session?.role !== "candidate") return NextResponse.json({ application: null });
+  const jobId = new URL(request.url).searchParams.get("jobId");
+  if (!jobId) return NextResponse.json({ application: null });
+  await connectDB();
+  const application = await Application.findOne({ job: jobId, candidate: session.userId }).select("_id").lean();
+  return NextResponse.json({ application: application ? { _id: application._id } : null });
+}
 
 export async function POST(request) {
   const body = await request.json();

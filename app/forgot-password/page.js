@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="auth-page">
-      <a className="brand" href="/"><span>✦</span> TalentLoop</a>
+     
       <section className="auth-card">
         <p className="eyebrow">ACCOUNT RECOVERY</p>
         <h1>Reset your password.</h1>

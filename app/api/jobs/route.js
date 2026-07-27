@@ -73,6 +73,11 @@ const jobSchema = z.object({
   category: z.string().optional(),
   deadline: z.string().optional(),
   status: z.enum(["draft", "published"]).default("draft"),
+  customQuestions: z.array(z.object({
+    question: z.string().min(1),
+    type: z.enum(["text", "textarea", "yesno"]).default("text"),
+    required: z.boolean().default(false),
+  })).default([]),
 });
 
 export async function POST(request) {
@@ -84,7 +89,8 @@ export async function POST(request) {
     const company = await Company.findOne({ owner: guard.session.userId });
     if (!company) return NextResponse.json({ error: "Create a company profile first." }, { status: 400 });
     const job = await Job.create({ ...data, company: company._id, deadline: data.deadline ? new Date(data.deadline) : undefined });
-    return NextResponse.json({ job }, { status: 201 });
+    const lean = await Job.findById(job._id).lean();
+    return NextResponse.json({ job: lean }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error.issues?.[0]?.message || "Unable to create job." }, { status: 400 });
   }

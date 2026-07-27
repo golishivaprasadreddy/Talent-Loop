@@ -7,6 +7,7 @@ import { PERMISSIONS } from "../../../lib/rbac";
 
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
+  phone: z.string().max(30).optional(),
   about: z.string().max(1000).optional(),
   skills: z.array(z.string()).optional(),
   experience: z.array(z.any()).optional(),
@@ -22,7 +23,7 @@ export async function GET() {
   const guard = await requirePermission(PERMISSIONS.manageOwnProfile);
   if (guard.error) return guard.error;
   await connectDB();
-  const user = await User.findById(guard.session.userId).select("-passwordHash").lean();
+  const user = await User.findById(guard.session.userId).select("-passwordHash -avatar").lean();
   if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
   return NextResponse.json({ user });
 }

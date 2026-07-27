@@ -14,6 +14,12 @@ const schema = z.object({
   }),
   role: z.enum(["candidate", "recruiter"]).default("candidate"),
   companyName: z.string().trim().max(100).optional().or(z.literal("")),
+  companyLogo: z.string().optional(),
+  companyDescription: z.string().trim().max(1000).optional(),
+  companyWebsite: z.string().trim().max(200).optional(),
+  companyIndustry: z.string().trim().max(100).optional(),
+  companySize: z.string().trim().max(20).optional(),
+  companyHeadquarters: z.string().trim().max(100).optional(),
   remember: z.boolean().optional(),
 });
 export async function POST(request) {
@@ -28,7 +34,16 @@ export async function POST(request) {
     if (await User.exists({ email: data.email.toLowerCase() })) return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 });
     if (data.role === "recruiter" && !data.companyName) return NextResponse.json({ error: "Company name is required for recruiters." }, { status: 400 });
     const user = await User.create({ name: data.name, email: data.email, passwordHash: await bcrypt.hash(data.password, 12), role: data.role });
-    if (data.role === "recruiter") await Company.create({ owner: user._id, name: data.companyName });
+    if (data.role === "recruiter") await Company.create({
+      owner: user._id,
+      name: data.companyName,
+      logo: data.companyLogo || undefined,
+      description: data.companyDescription || undefined,
+      website: data.companyWebsite || undefined,
+      industry: data.companyIndustry || undefined,
+      size: data.companySize || undefined,
+      headquarters: data.companyHeadquarters || undefined,
+    });
     const response = NextResponse.json({ user: { id: user._id, name: user.name, email: user.email, role: user.role } }, { status: 201 });
     response.cookies.set(sessionCookie(await createSession(user), data.remember));
     return response;

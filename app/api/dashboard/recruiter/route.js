@@ -17,8 +17,8 @@ export async function GET() {
 
   const [applicants, thisWeekApps] = await Promise.all([
     Application.find({ job: { $in: jobIds } })
-      .populate("candidate", "name email avatar skills resumeUrl portfolio")
-      .populate("job", "title")
+      .populate("candidate", "name email avatar skills resumeUrl portfolio experience education certifications languages about")
+      .populate("job", "title customQuestions")
       .sort({ createdAt: -1 })
       .limit(50)
       .lean(),

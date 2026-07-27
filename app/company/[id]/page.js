@@ -31,10 +31,7 @@ export default function CompanyPage() {
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--cream)" }}>
-      <nav className="nav shell">
-        <a className="brand" href="/"><span>✦</span> TalentLoop</a>
-        <div className="navlinks"><a href="/">← All jobs</a><a href="/login">Sign in</a></div>
-      </nav>
+   
 
       <div className="shell" style={{ padding: "48px 0 80px" }}>
         {/* Header */}

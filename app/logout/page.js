@@ -1,11 +1,15 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { clearAuthToken } from "../../lib/client-auth";
 
 export default function LogoutPage() {
   const router = useRouter();
   useEffect(() => {
-    fetch("/api/auth/logout", { method: "POST" }).finally(() => router.push("/"));
+    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      clearAuthToken();
+      router.push("/");
+    });
   }, [router]);
   return (
     <main style={{ minHeight: "100vh", background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center" }}>

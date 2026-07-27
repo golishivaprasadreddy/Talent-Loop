@@ -73,7 +73,6 @@ export default function AuthForm({ mode }) {
     setLoading(false);
     if (!res.ok) return setError(data.error || "Authentication failed.");
     setAuthToken(data.token);
-    window.dispatchEvent(new Event("talentloop-auth"));
     router.push(data.user.role === "recruiter" ? "/dashboard/recruiter" : data.user.role === "admin" ? "/dashboard/admin" : register ? "/profile/setup" : "/dashboard/candidate");
     router.refresh();
   }

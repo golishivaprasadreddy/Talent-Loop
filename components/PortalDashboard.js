@@ -1514,7 +1514,7 @@ function PortalShell({ role, tabs, tab, setTab, user: userProp, children }) {
               <div className="account-menu">
                 <UserCard user={user} role={role} />
                 <div className="account-menu-links">
-                  <button type="button" onClick={() => { clearAuthToken(); window.location.href = "/"; }}>Logout</button>
+                  <button type="button" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); clearAuthToken(); window.location.href = "/"; }}>Logout</button>
                   <a href="/">Back to site</a>
                 </div>
               </div>

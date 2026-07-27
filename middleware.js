@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { dashboardFor } from "./lib/rbac";
-import { verifySessionToken } from "./lib/session-token";
+import { SESSION_COOKIE, verifySessionToken } from "./lib/session-token";
 
 async function readSession(request) {
   const authHeader = request.headers.get("authorization");
   const token = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1]
-    || request.cookies.get("token")?.value;
+    || request.cookies.get(SESSION_COOKIE)?.value;
   return verifySessionToken(token);
 }
 

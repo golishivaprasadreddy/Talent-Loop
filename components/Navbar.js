@@ -1,22 +1,8 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { clearAuthToken, getAuthToken, TOKEN_STORAGE_KEY } from "../lib/client-auth";
-
-function subscribeToAuth(cb) {
-  window.addEventListener("talentloop-auth", cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener("talentloop-auth", cb);
-    window.removeEventListener("storage", cb);
-  };
-}
+import { useEffect, useRef, useState } from "react";
+import { clearAuthToken } from "../lib/client-auth";
 
 export default function Navbar() {
-  const hasToken = useSyncExternalStore(
-    subscribeToAuth,
-    () => !!window.localStorage.getItem(TOKEN_STORAGE_KEY),
-    () => false
-  );
   const [user, setUser] = useState(undefined);
   const [open, setOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -24,22 +10,21 @@ export default function Navbar() {
 
   useEffect(() => {
     function syncUser() {
-      const token = getAuthToken();
-      fetch("/api/profile", token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => setUser(d?.user || null));
+      fetch("/api/profile")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => setUser(d?.user || null))
+        .catch(() => setUser(null));
     }
+
     syncUser();
     window.addEventListener("talentloop-auth", syncUser);
-    window.addEventListener("storage", syncUser);
-    return () => {
-      window.removeEventListener("talentloop-auth", syncUser);
-      window.removeEventListener("storage", syncUser);
-    };
+    return () => window.removeEventListener("talentloop-auth", syncUser);
   }, []);
 
   useEffect(() => {
-    function close(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    function close(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
@@ -51,7 +36,7 @@ export default function Navbar() {
   }
 
   const initials = user?.name
-    ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+    ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : user?.email?.[0]?.toUpperCase() || "";
 
   const dashPath = user?.role === "recruiter"
@@ -69,29 +54,26 @@ export default function Navbar() {
           <a href="/#features">Platform</a>
           <a href="/#how">How it works</a>
 
-          {/* loading skeleton */}
           {user === undefined && (
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--line)" }} />
           )}
 
-          {/* logged out */}
-          {user === null && !hasToken && (
+          {user === null && (
             <>
               <a href="/login" className="nav-login-btn">Login</a>
               <a href="/register" className="nav-button">Get started</a>
             </>
           )}
 
-          {/* logged in — avatar dropdown */}
           {user && (
             <div ref={ref} style={{ position: "relative" }}>
               <button
-                onClick={() => setOpen(o => !o)}
+                onClick={() => setOpen((o) => !o)}
                 className="nav-avatar-btn"
                 aria-label="Account menu"
               >
                 {user.avatar
-                  ? <img src={user.avatar} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ? <img src={user.avatar} alt={user.name || "Profile avatar"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : initials}
               </button>
               {open && (
@@ -116,7 +98,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile menu */}
       <div className={`mobile-menu ${mobileMenu ? "open" : ""}`}>
         <button className="mobile-menu-close" onClick={() => setMobileMenu(false)}>×</button>
         <a href="/#jobs" onClick={() => setMobileMenu(false)}>Find jobs</a>

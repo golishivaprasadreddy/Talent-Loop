@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { connectDB } from "../../../../lib/db";
 import { User, Company } from "../../../../models";
-import { createSession } from "../../../../lib/auth";
+import { createSession, sessionCookie } from "../../../../lib/auth";
 import { toAuthUser } from "../../../../lib/auth-user";
 
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -47,12 +47,7 @@ export async function POST(request) {
     });
     const token = await createSession(user, data.remember);
     const response = NextResponse.json({ token, user: toAuthUser(user) }, { status: 201 });
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: data.remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7,
-    });
+    response.cookies.set(sessionCookie(token, data.remember));
     return response;
   } catch (error) {
     console.error("[register]", error);

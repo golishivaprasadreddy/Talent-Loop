@@ -1,13 +1,29 @@
 "use client";
 import { useEffect } from "react";
-import { getAuthToken } from "../../lib/client-auth";
+import { clearAuthToken, getAuthToken } from "../../lib/client-auth";
 import AuthForm from "../../components/AuthForm";
 
 export default function RegisterPage() {
   useEffect(() => {
-    if (getAuthToken()) window.location.replace("/dashboard");
+    const token = getAuthToken();
+    if (!token) return;
+
+    fetch("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!data?.user) {
+          clearAuthToken();
+          return;
+        }
+        const path = data.user.role === "recruiter"
+          ? "/dashboard/recruiter"
+          : data.user.role === "admin"
+          ? "/dashboard/admin"
+          : "/dashboard/candidate";
+        window.location.replace(path);
+      })
+      .catch(() => clearAuthToken());
   }, []);
 
-  if (typeof window !== "undefined" && getAuthToken()) return null;
   return <AuthForm mode="register" />;
 }

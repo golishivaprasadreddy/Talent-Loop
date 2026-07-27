@@ -72,7 +72,7 @@ export default function AuthForm({ mode }) {
   if (!register) {
     return (
       <main className="auth-page">
-        <a className="brand" href="/"><span>✦</span> TalentLoop</a>
+       
         <section className="auth-card">
           <p className="eyebrow">WELCOME BACK</p>
           <h1>Good to see you again.</h1>
@@ -96,7 +96,7 @@ export default function AuthForm({ mode }) {
 
   return (
     <main className="auth-page">
-      <a className="brand" href="/"><span>✦</span> TalentLoop</a>
+     
       <section className="auth-card">
         <p className="eyebrow">JOIN TALENTLOOP</p>
         <h1>Your next chapter starts here.</h1>

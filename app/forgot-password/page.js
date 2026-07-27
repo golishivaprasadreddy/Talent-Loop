@@ -13,8 +13,8 @@ export default function ForgotPasswordPage() {
     const res = await fetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
     const data = await res.json(); setLoading(false);
     if (!res.ok) return setError(data.error || "Something went wrong.");
+    if (data.resetUrl) { window.location.href = data.resetUrl; return; }
     setDone(true);
-    if (data.resetUrl) setResetUrl(data.resetUrl);
   }
 
   return (
@@ -36,9 +36,9 @@ export default function ForgotPasswordPage() {
           <>
             <p>If an account exists for <strong>{email}</strong>, a reset link has been sent.</p>
             {resetUrl && (
-              <div style={{ marginTop: 16, padding: "12px 14px", background: "#edf3d9", borderRadius: 7, fontSize: 12 }}>
-                <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#41531a" }}>Dev mode — reset link:</p>
-                <a href={resetUrl} style={{ color: "#48651a", wordBreak: "break-all" }}>{resetUrl}</a>
+              <div style={{ marginTop: 16, padding: "14px 16px", background: "#edf3d9", borderRadius: 8, border: "1px solid #c5d98a" }}>
+                <p style={{ margin: "0 0 10px", fontWeight: 600, fontSize: 12, color: "#41531a" }}>⚠️ Dev mode — no email provider configured. Use this link:</p>
+                <a href={resetUrl} className="submit" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>Reset your password →</a>
               </div>
             )}
           </>

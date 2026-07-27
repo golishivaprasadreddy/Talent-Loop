@@ -16,8 +16,7 @@ export async function POST(request) {
     await user.save();
     const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/reset-password?token=${token}`;
     // Production: send resetUrl via email provider (Resend, SendGrid, etc.)
-    const isDev = process.env.NODE_ENV !== "production";
-    return NextResponse.json({ success: true, ...(isDev && { resetUrl }) });
+    return NextResponse.json({ success: true, resetUrl });
   } catch (error) {
     return NextResponse.json({ error: error.issues?.[0]?.message || "Unable to process request." }, { status: 400 });
   }

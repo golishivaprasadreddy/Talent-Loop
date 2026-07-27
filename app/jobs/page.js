@@ -271,13 +271,16 @@ function JobsPageInner() {
         </div>
       </div>
 
-      <footer style={{ marginTop: 80 }}>
-        <div className="shell footer-inner">
-          <a className="brand" href="/"><span>✦</span> TalentLoop</a>
-          <p>Good work starts with the right match.</p>
-          <span>© 2025 TalentLoop</span>
-        </div>
-      </footer>
+       <footer style={{ marginTop: 80 }}>
+          <div className="shell footer-inner">
+            <a className="brand" href="/"><span>✦</span> TalentLoop</a>
+            <p>Good work starts with the right match.</p>
+          <p>Designed and Devloped Shivaprasad Reddy Goli</p>
+        
+          <p>shivaprasadreddy.goli@gmail.com</p>
+            <span>© 2026 TalentLoop</span>
+          </div>
+        </footer>
     </main>
   );
 }

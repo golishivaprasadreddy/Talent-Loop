@@ -77,7 +77,7 @@ export default function Navbar() {
                   {user.role === "candidate" && (
                     <a href={`${dashPath}?tab=${encodeURIComponent("Saved jobs")}`} onClick={() => setOpen(false)}>Saved jobs</a>
                   )}
-                  <a href={`${dashPath}?tab=Profile`} onClick={() => setOpen(false)}>Edit profile</a>
+                  <a href={`${dashPath}?tab=${encodeURIComponent(user.role === "recruiter" ? "Company profile" : "Profile")}`} onClick={() => setOpen(false)}>Edit profile</a>
                   <button onClick={logout}>Log out</button>
                 </div>
               )}
